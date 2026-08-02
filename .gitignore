@@ -1,0 +1,26 @@
+# Build output
+.build/
+*.app/
+.DS_Store
+
+# Local usage history. The learning store, the menu-selection log and the
+# invocation log are records of which applications were used and when, so they
+# are personal data and never belong in the repository.
+data/*.jsonl
+data/learning.json
+data/learning.json.*
+data/digests/
+data/preview-*.txt
+data/preview-raw.json
+data/events.jsonl
+
+# Keyboard layout is generated per machine; ship the built-in default instead.
+data/keyboard.json
+
+# Compiled spike binary and Python bytecode
+spike/trigger/trigger-spike
+__pycache__/
+*.pyc
+
+# Previews are generated; the copies under docs/ are the ones the README shows.
+data/preview-*.png
