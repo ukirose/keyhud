@@ -322,8 +322,14 @@ final class HUDPanel {
     ///   why it used to be blanked here — but blanking it made every capture disagree with
     ///   the running panel, which draws the frontmost app's icon in its header. The render
     ///   knows exactly which app it is drawing, so the icon is not ambient for it.
+    /// - Parameter sides: which physical modifier keys to draw as held. Neutralised to
+    ///   `.unknown` here for the same reason the screen was, and `.unknown` lights *both*
+    ///   caps of every held modifier — correct for a keyboard that does not report sides,
+    ///   and a picture of something that never happens for one that does. A capture states
+    ///   what it is showing rather than falling through to the ambiguous case.
     func renderPNG(appName: String, appKey: String, sections: [MenuSection],
-                   mods: Shortcut.Mods, icon: NSImage? = nil) -> Data? {
+                   mods: Shortcut.Mods, icon: NSImage? = nil,
+                   sides: Shortcut.Sides = .unknown) -> Data? {
         // Pinned so two captures of different builds are comparable. Whether the text
         // layer applies otherwise depends on what has keyboard focus at that instant, and
         // comparing two builds produced thirty-two differing images of which twenty-four
@@ -340,7 +346,7 @@ final class HUDPanel {
         // anything — except the icon, which the caller states outright.
         let liveIcon = appIcon, liveScreen = targetScreen, liveSides = heldSides
         let liveFn = canTypeFunctionModifier
-        appIcon = icon; targetScreen = nil; heldSides = .unknown; canTypeFunctionModifier = false
+        appIcon = icon; targetScreen = nil; heldSides = sides; canTypeFunctionModifier = false
         defer { appIcon = liveIcon; targetScreen = liveScreen; heldSides = liveSides
                 canTypeFunctionModifier = liveFn }
 

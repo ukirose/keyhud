@@ -335,6 +335,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return mods
     }
 
+    /// Which physical keys a capture shows as held. A hold is one hand on one side; the
+    /// neutral value lights both, which is a picture of a keypress nobody makes.
+    private static var previewSides: Shortcut.Sides {
+        var s = Shortcut.Sides()
+        s.command = .left; s.control = .left; s.option = .left; s.shift = .left
+        return s
+    }
+
     private func writePreviews() {
         // renderPNG writes the same fields rerender reads. Firing this during a hold
         // redrew the on-screen panel from the preview target's menus.
@@ -377,7 +385,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.learning.settings = s
                     guard let png = self.hud.renderPNG(appName: name, appKey: appKey,
                                                        sections: sections, mods: Self.previewMods,
-                                                       icon: app.icon)
+                                                       icon: app.icon, sides: Self.previewSides)
                     else { continue }
                     try? png.write(to: self.dataDir.appendingPathComponent("preview-\(mode).png"))
                 }
