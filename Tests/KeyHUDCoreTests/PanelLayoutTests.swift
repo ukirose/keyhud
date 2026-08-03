@@ -22,6 +22,11 @@ final class PanelLayoutTests: XCTestCase {
         store = LearningStore(directory: dir)
         panel = HUDPanel()
         panel.learning = store
+        // Pinned empty. Left to its default this asks the window server what has keyboard
+        // focus, so the text-editing layer appeared in the panel or not depending on where
+        // the cursor was when the suite ran — and the cases below assert on exactly which
+        // rows were drawn.
+        panel.textLayer = { [] }
         KeyboardLayout.load()
     }
 

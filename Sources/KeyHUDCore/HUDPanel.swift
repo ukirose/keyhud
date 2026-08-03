@@ -46,6 +46,17 @@ final class HUDPanel {
     var canTypeFunctionKeys: Bool { KeyboardLayout.functionKeysAreStandard }
     /// The frontmost app's icon, set alongside its name.
     var appIcon: NSImage?
+    /// What the system text-editing layer contributes to this hold.
+    ///
+    /// A closure rather than a direct call, because the direct call reaches the machine:
+    /// it asks the window server what has keyboard focus right now. Under test that is
+    /// whatever the person running the suite happens to be looking at, so three cases
+    /// passed or failed depending on whether a text field was focused at that instant —
+    /// green meant nothing for them. A test supplies its own and gets the same answer
+    /// every run.
+    var textLayer: () -> [Shortcut] = {
+        (!TextBindings.all.isEmpty && TextBindings.applyToFocusedElement()) ? TextBindings.all : []
+    }
     /// Resolved once and reused: parsing a theme file on every hold would put file I/O
     /// on the path between pressing a key and seeing the panel.
     var theme: Theme = .builtin
@@ -131,15 +142,13 @@ final class HUDPanel {
     ///   bindings whether or not a text field had focus. A knob for reproducing a
     ///   screenshot had become a behaviour change, on the live path, silently.
     private func begin(appName: String, appKey: String, sections: [MenuSection],
-                       mods: Shortcut.Mods, textLayer: Bool? = nil) -> Hold? {
+                       mods: Shortcut.Mods, pinnedLayer: Bool? = nil) -> Hold? {
         let panel = self.panel ?? makePanel()
         self.panel = panel
 
         // One Accessibility round trip, here, rather than one per repaint: narrowing from
         // ⌘ to ⇧⌘ happens while the fingers are still down and cannot afford one.
-        let applies = textLayer
-            ?? (!TextBindings.all.isEmpty && TextBindings.applyToFocusedElement())
-        let bindings = applies ? TextBindings.all : []
+        let bindings = pinnedLayer.map { $0 ? TextBindings.all : [] } ?? textLayer()
         let visible = placementFrame(panel)
 
         let probe = Hold(appName: appName, appKey: appKey, sections: sections,
@@ -336,7 +345,7 @@ final class HUDPanel {
                 canTypeFunctionModifier = liveFn }
 
         guard let hold = begin(appName: appName, appKey: appKey, sections: sections,
-                               mods: mods, textLayer: pin.map { $0 == "1" }) else { return nil }
+                               mods: mods, pinnedLayer: pin.map { $0 == "1" }) else { return nil }
         let model = resolve(mods, in: hold)
         guard !model.hasNothingToShow else { return nil }
         let (view, size) = buildContent(model, in: hold,
