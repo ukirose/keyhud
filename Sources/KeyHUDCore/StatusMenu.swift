@@ -27,11 +27,40 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         self.actions = actions
         super.init()
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.title = "⌘"
         let menu = NSMenu()
         menu.delegate = self
         item.menu = menu
         self.item = item
+        showSecureInputState()
+        // Polled rather than observed: macOS publishes no notification for this, and a
+        // terminal can turn it on mid-session the moment a password prompt appears. Two
+        // seconds is far below the time it takes to wonder why nothing is happening, and
+        // the call is a single boolean read.
+        secureInputWatch = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) {
+            [weak self] _ in self?.showSecureInputState()
+        }
+    }
+
+    private var secureInputWatch: Timer?
+    private var lastSecureInput: Bool?
+
+    /// The menu bar says so, because nothing else can. While secure input is on the panel
+    /// cannot appear at all, so a message inside it would never be read.
+    private func showSecureInputState() {
+        let active = SecureInput.isActive
+        guard active != lastSecureInput else { return }
+        lastSecureInput = active
+        debugLog("secure input is \(active ? "ON — no key events will arrive" : "off")")
+        guard let button = item?.button else { return }
+        button.attributedTitle = NSAttributedString(
+            string: "⌘",
+            attributes: active
+                ? [.strikethroughStyle: NSUnderlineStyle.single.rawValue,
+                   .strikethroughColor: NSColor.systemRed]
+                : [:])
+        button.toolTip = active
+            ? "Secure Input が有効です。キー入力が届かないため、パネルは出ず、使用も記録されません。"
+            : nil
     }
 
     /// Rebuilt on open so counts and the coaching list are current, and so the work is
@@ -39,6 +68,13 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         let s = actions.settings()
         menu.removeAllItems()
+        if SecureInput.isActive {
+            menu.addItem(disabled("⚠︎ Secure Input が有効です"))
+            menu.addItem(disabled("　キー入力が macOS に隠されているため、"))
+            menu.addItem(disabled("　パネルは出ず、使用も記録されません"))
+            menu.addItem(disabled("　パスワード入力欄か、ターミナルの設定が原因です"))
+            menu.addItem(.separator())
+        }
         menu.addItem(disabled("⌘ / ⌃ / ⌥ を長押しでショートカット表示"))
 
         menu.addItem(.separator())
